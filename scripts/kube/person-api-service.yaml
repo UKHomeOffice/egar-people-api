@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    io.kompose.service: person-api
+  name: person-api
+spec:
+  type: NodePort
+  ports:
+  - name: headless
+    port: 8010
+  selector:
+    io.kompose.service: person-api
+status:
+  loadBalancer: {}

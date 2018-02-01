@@ -1,0 +1,13 @@
+{
+  "given_name" : "IHaveMoreCharactersThanIsAllowedWhenAddingANewPerson",
+  "family_name" : "SoIExpectToFailWhenAnAttemptIsMadeToAddMe",
+  "gender": "MALE",
+  "address": "124ABC",
+  "dob": "1995-12-16",
+  "place": "Bath",
+  "nationality": "Scottish",
+  "document_type": "ID",
+  "document_no": "1a2b3c4d",
+  "document_expiryDate": "2023-12-04",
+  "document_issuingCountry": "Austria"
+}

@@ -1,0 +1,77 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  labels:
+    io.kompose.service: person-api
+  name: person-api
+spec:
+  replicas: 1
+  strategy: {}
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        io.kompose.service: person-api
+    spec:
+      containers:
+      - args:
+        - --spring.profiles.active=prod
+        - --prod.database.url=jdbc:postgresql://egar.chmjeqipapmr.eu-west-2.rds.amazonaws.com/egardb
+        - --prod.database.username=$(DB_USER)
+        - --prod.database.password=$(DB_PASS)
+        env:
+          - name: DB_USER
+            valueFrom:
+              secretKeyRef:
+                name: egar-secret
+                key: dbuser
+          - name: DB_PASS
+            valueFrom:
+              secretKeyRef:
+                name: egar-secret
+                key: dbpass
+        image: pipe.egarteam.co.uk/egar-people-api:$PEOPLE_API_VER
+        name: person-api
+        livenessProbe:
+          initialDelaySeconds: 15
+          periodSeconds: 20
+          httpGet:
+            path: /health
+            port: 8083
+        resources: {}
+      - args:
+        - --discovery-url=http://key.egarteam.co.uk:9090/auth/realms/egar
+        - --client-id=$(CLIENT_ID)
+        - --client-secret=$(CLIENT_SECRET)
+        - --listen=0.0.0.0:8010
+        - --encryption-key=$(ENCRYPT_KEY)
+        - --upstream-url=http://localhost:8083
+        - --resources=uri=/api/*|roles=uma_authorization
+        - --secure-cookie=false
+        - --enable-logging=true
+        - --no-redirects=true
+        - --upstream-response-header-timeout=50s
+        - --upstream-timeout=50s
+        - --upstream-keepalive-timeout=50s
+        - --upstream-expect-continue-timeout=50s
+        - --add-claims=email
+        env:
+          - name: CLIENT_ID
+            valueFrom:
+              secretKeyRef:
+                name: egar-secret
+                key: clientid
+          - name: CLIENT_SECRET
+            valueFrom:
+              secretKeyRef:
+                name: egar-secret
+                key: clientsecret
+          - name: ENCRYPT_KEY
+            valueFrom:
+              secretKeyRef:
+                name: egar-secret
+                key: enckey
+        image: quay.io/gambol99/keycloak-proxy
+        name: person-api-proxy
+      restartPolicy: Always
+status: {}
