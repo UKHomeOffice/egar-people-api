@@ -223,9 +223,10 @@
 							<tag>${project.version}</tag>
 						</configuration>
 					</execution>
+
 				</executions>
 					<configuration>
-						<repository>egar/${project.artifactId}</repository>
+						<repository>${project.artifactId}</repository>
 						<buildArgs>
 							<JAR_FILE>target/${project.build.finalName}.jar</JAR_FILE>
 						</buildArgs>
@@ -234,13 +235,7 @@
 		<!-- Docker build : end -->
 		
 		</plugins>
-		<extensions>
-			<extension>
-				<groupId>org.springframework.build</groupId>
-				<artifactId>aws-maven</artifactId>
-				<version>5.0.0.RELEASE</version>
-			</extension>
-		</extensions>
+
 	</build>
 
 	<pluginRepositories>
@@ -254,7 +249,7 @@
 	</pluginRepositories>
 
 
-	<version>4.1.0</version>
+	<version>4.1.1</version>
     <name>Person API application</name>
 	<description>API for Storing information on people for use in eGAR.</description>
 </project>
