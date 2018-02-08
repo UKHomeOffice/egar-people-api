@@ -33,11 +33,11 @@ spec:
         image: pipe.egarteam.co.uk/egar-people-api:$PEOPLE_API_VER
         name: person-api
         livenessProbe:
-          initialDelaySeconds: 60
-          periodSeconds: 20
+          initialDelaySeconds: 90
+          periodSeconds: 30
           httpGet:
-            path: /health
-            port: 8080
+            path: /healthz
+            port: 8083
         resources: {}
       - args:
         - --discovery-url=http://auth.egarteam.co.uk/auth/realms/egar
@@ -45,7 +45,7 @@ spec:
         - --client-secret=$(CLIENT_SECRET)
         - --listen=0.0.0.0:8010
         - --encryption-key=$(ENCRYPT_KEY)
-        - --upstream-url=http://localhost:8080
+        - --upstream-url=http://localhost:8083
         - --resources=uri=/api/*|roles=uma_authorization
         - --secure-cookie=false
         - --enable-logging=true
