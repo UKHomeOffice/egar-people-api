@@ -249,7 +249,7 @@
 	</pluginRepositories>
 
 
-	<version>4.1.1</version>
+	<version>5.0.1</version>
     <name>Person API application</name>
 	<description>API for Storing information on people for use in eGAR.</description>
 </project>

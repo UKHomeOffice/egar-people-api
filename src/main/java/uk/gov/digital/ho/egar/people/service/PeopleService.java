@@ -1,5 +1,6 @@
 package uk.gov.digital.ho.egar.people.service;
 
+import java.util.List;
 import java.util.UUID;
 
 import uk.gov.digital.ho.egar.people.api.exceptions.PersonNotFoundPersonApiException;
@@ -13,5 +14,6 @@ public interface PeopleService {
 	public PersonWithId getPerson(final UUID uuid, final UUID userUuid) throws PersonNotFoundPersonApiException;
 	public PersonWithId updatePerson(final UUID uuid, final Person updatePerson, final UUID userUuid) throws PersonNotFoundPersonApiException;
 	public void deletePerson(final UUID personUuid, final UUID userUuid) throws PersonNotFoundPersonApiException;
+	public PersonWithId[] getBulkPeople(final UUID uuidOfUser, final List<UUID> peopleUuids);
 
 }

@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.CoreMatchers.hasItems;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -15,8 +16,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static uk.gov.digital.ho.egar.people.test.utils.FileReaderUtils.readFileAsString;
+import static org.hamcrest.Matchers.hasSize;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 import org.junit.Ignore;
@@ -29,6 +33,8 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import uk.gov.digital.ho.egar.people.api.PeopleRestService;
 import uk.gov.digital.ho.egar.people.model.Gender;
@@ -47,6 +53,7 @@ public class EndpointTest {
 	private static final String AUTH = "TEST";
 
 	private static final String PERSONS_ENDPOINT = "/api/v1/persons/";
+	private static final String PERSONS_BULK     = PERSONS_ENDPOINT + "summaries";
 
 
 
@@ -59,6 +66,9 @@ public class EndpointTest {
 
 	@Autowired
 	private MockMvc mockMvc;
+
+	@Autowired
+	private ObjectMapper mapper;
 
 	@Test
 	public void contextLoads() {
@@ -242,6 +252,168 @@ public class EndpointTest {
 	@Test
 	public void badRequestUpdatingNewPerson()  throws Exception{
 
+	}
+	//------------------------------------------------------------------------------------------
+	/*
+	 *  POST - BULK
+	 */
+	//------------------------------------------------------------------------------------------
+	@Test
+	public void shouldOnlyBulkfetchPeopleInListAndForThisUser() throws Exception{
+		// WITH
+		repo.deleteAll();
+		UUID userUuid = UUID.randomUUID();
+
+		List<UUID> peopleUuids = new ArrayList<>();
+
+		// add three people for the current user and save ids to list
+		for (int i=0; i<3 ; i++) {
+			UUID personUuid = UUID.randomUUID();
+			PersonPersistentRecord person = PersonPersistentRecord.builder()
+				.userUuid(userUuid)
+				.personUuid(personUuid)
+				.givenName("Jenna")
+				.familyName("Smith")
+				.gender(Gender.FEMALE)
+				.address("123 ABC")
+				.dob(LocalDate.of(1995, 12, 12))
+				.place("London")
+				.nationality("GDB")
+				.documentType("PASSPORT")
+				.documentNo("1234aBCD")
+				.documentExpiryDate(LocalDate.of(2020, 12, 12))
+				.documentIssuingCountry("UK")
+				.build();
+
+		repo.saveAndFlush(person);
+			peopleUuids.add(personUuid);
+		}
+		// add a person for user but dont add to list
+		UUID personUuid = UUID.randomUUID();
+			PersonPersistentRecord person = PersonPersistentRecord.builder()
+				.userUuid(userUuid)
+				.personUuid(personUuid)
+				.givenName("Jenna")
+				.familyName("Smith")
+				.gender(Gender.FEMALE)
+				.address("123 ABC")
+				.dob(LocalDate.of(1995, 12, 12))
+				.place("London")
+				.nationality("GDB")
+				.documentType("PASSPORT")
+				.documentNo("1234aBCD")
+				.documentExpiryDate(LocalDate.of(2020, 12, 12))
+				.documentIssuingCountry("UK")
+				.build();
+
+		repo.saveAndFlush(person);
+		// add a person for different user
+		UUID personUuidOther = UUID.randomUUID();
+		UUID UuidDiffUser = UUID.randomUUID();
+		PersonPersistentRecord otherPerson = PersonPersistentRecord.builder()
+				.userUuid(UuidDiffUser)
+				.personUuid(personUuidOther)
+				.givenName("Jenna")
+				.familyName("Smith")
+				.gender(Gender.FEMALE)
+				.address("123 ABC")
+				.dob(LocalDate.of(1995, 12, 12))
+				.place("London")
+				.nationality("GDB")
+				.documentType("PASSPORT")
+				.documentNo("1234aBCD")
+				.documentExpiryDate(LocalDate.of(2020, 12, 12))
+				.documentIssuingCountry("UK")
+				.build();
+
+		repo.saveAndFlush(otherPerson);
+		peopleUuids.add(personUuidOther);
+		// WHEN
+		MvcResult result =
+				this.mockMvc
+				.perform(post(PERSONS_BULK)
+						.header(AUTH_HEADER, AUTH)
+						.header(USERID_HEADER, userUuid)
+						.contentType(MediaType.APPLICATION_JSON_UTF8_VALUE)
+						.content(mapper.writeValueAsString(peopleUuids)))
+				.andExpect(status().isOk())
+				.andExpect(content().contentType(MediaType.APPLICATION_JSON_UTF8_VALUE))
+				//THEN
+				.andExpect(jsonPath("$").exists())
+				.andExpect(jsonPath("$").isArray())
+				.andExpect(jsonPath("$", hasSize(3)))
+				.andExpect(jsonPath("$[*].person_uuid", hasItems(peopleUuids.get(0).toString(),peopleUuids.get(1).toString(),peopleUuids.get(2).toString()))).andReturn();
+		//Check it doesn't contain other people
+		String response = result.getResponse().getContentAsString();
+		assertFalse(response.contains(personUuid.toString()));
+		assertFalse(response.contains(peopleUuids.get(3).toString()));
+
+	}
+
+	@Test
+	public void bulkFetchShouldReturnEmptyArrayIfNoMatch() throws Exception{
+		// WITH
+		repo.deleteAll();
+		UUID userUuid       = UUID.randomUUID();
+		List<UUID> peopleUuids = new ArrayList<>();
+		for (int i=0; i<3 ; i++) {
+			peopleUuids.add(UUID.randomUUID());
+		}
+		// WHEN
+		this.mockMvc
+		.perform(post(PERSONS_BULK)
+				.header(AUTH_HEADER, AUTH)
+				.header(USERID_HEADER, userUuid)
+				.contentType(MediaType.APPLICATION_JSON_UTF8_VALUE)
+				.content(mapper.writeValueAsString(peopleUuids)))
+		// THEN
+		.andExpect(status().isOk())
+		.andExpect(jsonPath("$").exists())
+		.andExpect(jsonPath("$").isArray())
+		.andExpect(jsonPath("$", hasSize(0)));
+	}
+	
+	@Test
+	public void bulkFetchShouldNotContainDuplicateData() throws Exception{
+		// WITH
+		repo.deleteAll();
+		UUID userUuid = UUID.randomUUID();
+		UUID personUuid  = UUID.randomUUID();
+		
+		// add people for user
+		PersonPersistentRecord person = PersonPersistentRecord.builder()
+				.userUuid(userUuid)
+				.personUuid(personUuid)
+				.givenName("Jenna")
+				.familyName("Smith")
+				.gender(Gender.FEMALE)
+				.address("123 ABC")
+				.dob(LocalDate.of(1995, 12, 12))
+				.place("London")
+				.nationality("GDB")
+				.documentType("PASSPORT")
+				.documentNo("1234aBCD")
+				.documentExpiryDate(LocalDate.of(2020, 12, 12))
+				.documentIssuingCountry("UK")
+				.build();
+
+		repo.saveAndFlush(person);
+		
+		List<UUID> peopleUuids = new ArrayList<>();
+		// add same person uuid to request list
+		peopleUuids.add(personUuid);
+		peopleUuids.add(personUuid);
+		// WHEN
+		this.mockMvc
+		.perform(post(PERSONS_BULK)
+				.header(AUTH_HEADER, AUTH)
+				.header(USERID_HEADER, userUuid)
+				.contentType(MediaType.APPLICATION_JSON_UTF8_VALUE)
+				.content(mapper.writeValueAsString(peopleUuids)))
+		.andExpect(status().isOk())
+		.andExpect(jsonPath("$").exists())
+		.andExpect(jsonPath("$").isArray())
+		.andExpect(jsonPath("$", hasSize(1)));
 	}
 	//------------------------------------------------------------------------------------------
 	/*

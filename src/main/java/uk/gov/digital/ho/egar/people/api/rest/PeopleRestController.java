@@ -33,6 +33,7 @@ import uk.gov.digital.ho.egar.people.api.exceptions.PersonNotFoundPersonApiExcep
 import uk.gov.digital.ho.egar.people.model.Person;
 import uk.gov.digital.ho.egar.people.model.PersonWithId;
 import uk.gov.digital.ho.egar.people.service.PeopleService;
+import uk.gov.digital.ho.egar.shared.auth.api.token.AuthValues;
 
 import javax.validation.Valid;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -154,6 +155,45 @@ public class PeopleRestController implements PeopleRestService  {
 		return new ResponseEntity<Void>(HttpStatus.ACCEPTED);
 	}
 	
+	//---------------------------------------------------------------------------------------------------------
+    
+    /**
+     * A get endpoint that bulk retrieves a list of people
+     * -------------------------------------------------------------------------------------------
+     *  
+     */
+    
+    
+    @Override
+    @ApiOperation(value = "Bulk retrieve a list of people",
+            notes = "Retrieve a list of people for a user")
+    @ApiResponses(value = {
+    		@ApiResponse(
+                    code = 200,
+                    message = PeopleApiResponse.SWAGGER_MESSAGE_SUCCESSFUL_RETRIEVED_KEY,
+                    response = PersonWithId[].class),
+            @ApiResponse(
+                    code = 401,
+                    message = PeopleApiResponse.SWAGGER_MESSAGE_UNAUTHORISED)})
+    @ResponseStatus(HttpStatus.OK)
+    @PostMapping(path = PeopleRestService.PATH_BULK,
+    			consumes = MediaType.APPLICATION_JSON_VALUE,
+           		produces = MediaType.APPLICATION_JSON_VALUE)
+    public PersonWithId[] bulkRetrievePeople(@RequestHeader(AuthValues.USERID_HEADER) UUID uuidOfUser, 
+    									   @RequestBody List<UUID> peopleUuids) {
+    	logger.info("bulk fetch of people");
+    	logger.info("User uuid: "+ uuidOfUser.toString());
+
+    	if (peopleUuids == null){
+    		peopleUuids = new ArrayList<UUID>();
+    	}
+    	try {
+			return peopleService.getBulkPeople(uuidOfUser,peopleUuids);
+		} catch (Exception e) {
+			logger.error(e.getMessage());
+		}
+    	return null;
+    }
     
     /**
      * Get redirection URI from path and person uuid

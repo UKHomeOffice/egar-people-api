@@ -1,5 +1,6 @@
 package uk.gov.digital.ho.egar.people.api;
 import java.net.URISyntaxException;
+import java.util.List;
 import java.util.UUID;
 
 import org.springframework.http.ResponseEntity;
@@ -25,7 +26,7 @@ public interface PeopleRestService extends ServicePathConstants {
 	
 	public static final String PATH_PEOPLE = "/";
 	public static final String PATH_PERSON = "/{person_uuid}";
-	
+	public static final String PATH_BULK = "/summaries";
 	
 	public ResponseEntity<Void> addPerson( UUID uuidOfUser, Person newPerson ) throws URISyntaxException;
 	
@@ -33,4 +34,6 @@ public interface PeopleRestService extends ServicePathConstants {
 	
 	public ResponseEntity<Void> deletePerson(UUID uuidOfUser, UUID uuid) throws PersonNotFoundPersonApiException;
 	public ResponseEntity<Void> updatePerson(UUID uuidOfUser, UUID uuid, Person updateThis) throws URISyntaxException, PersonNotFoundPersonApiException;
+
+	public PersonWithId[] bulkRetrievePeople(final UUID uuidOfUser, final List<UUID> peopleUuids);
 }

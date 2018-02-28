@@ -1,5 +1,6 @@
 package uk.gov.digital.ho.egar.people.service.impl;
 
+import java.util.List;
 import java.util.UUID;
 
 import org.slf4j.Logger;
@@ -64,6 +65,20 @@ public class PeopleServiceDatabaseImpl implements PeopleService {
 		peopleRepository.delete(personUuid);
 		
 	}
+	
+	@Override
+	public PersonWithId[] getBulkPeople(UUID uuidOfUser, List<UUID> peopleUuids) {
+		PersonWithId[] peopleArray = null;
+		try{
+			List<PersonPersistentRecord> personList = peopleRepository.findAllByUserUuidAndPersonUuidIn(uuidOfUser,peopleUuids);
+			peopleArray = new PersonWithId[personList.size()];
+			peopleArray = personList.toArray(peopleArray);
+		}catch (Exception e){
+			logger.error(e.getMessage());
+			peopleArray = new PersonWithId[0];
+		}
+		return peopleArray;
+	}
 
 	private PersonPersistentRecord createPerson(UUID personUuid, UUID userUuid, Person details){
         return PersonPersistentRecord.builder()
@@ -82,5 +97,6 @@ public class PeopleServiceDatabaseImpl implements PeopleService {
                 .personUuid(personUuid)
                 .build();
     }
+
 
 }
